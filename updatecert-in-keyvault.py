@@ -21,29 +21,31 @@ def update_keyvault(name, data):
     if not res.ok:
         raise NotAbleToUpdateKeyVault()
 
+def create_pfx_and_update_keyvault(path):
+    for _ in range(3):
+        try:
+            parent = os.path.dirname(path)
+            parent_name = pathlib.Path(parent).name
+            parent_name = re.sub('[^a-zA-Z0-9-]', '-', parent_name)
+            cert_path = os.path.join(parent, 'fullchain.pem')
+            key_path = os.path.join(parent, 'privkey.pem')
+            pfx_path = os.path.join(os.getcwd(), f'{parent_name}.pfx')
+            os.system(f'openssl pkcs12 -export -out {pfx_path} -inkey {key_path} -in {cert_path} -passout pass:')
+            data = None
+            with open(pfx_path, 'r') as f:
+                data = f.read()
+                data = b64encode(data.encode('UTF-8', errors='strict'))
+            update_keyvault(parent_name, data)
+            os.remove(pfx_path)
+        except Exception as e:
+            print(e)
+            continue
+        break
 
 class CertUpdateEventHandler(FileSystemEventHandler):
     def on_modified(self, event):
         if not event.is_directory:
-            for _ in range(3):
-                try:
-                    parent = os.path.dirname(event.src_path)
-                    parent_name = pathlib.Path(parent).name
-                    parent_name = re.sub('[^a-zA-Z0-9-]', '-', parent_name)
-                    cert_path = os.path.join(parent, 'fullchain.pem')
-                    key_path = os.path.join(parent, 'privkey.pem')
-                    pfx_path = os.path.join(os.getcwd(), f'{parent_name}.pfx')
-                    os.system(f'openssl pkcs12 -export -out {pfx_path} -inkey {key_path} -in {cert_path} -passout pass:')
-                    data = None
-                    with open(pfx_path, 'r') as f:
-                        data = f.read()
-                        data = b64encode(data.encode('UTF-8', errors='strict'))
-                    update_keyvault(parent_name, data)
-                    os.remove(pfx_path)
-                except Exception as e:
-                    print(e)
-                    continue
-                break
+            create_pfx_and_update_keyvault(event.src_path)
 
 
 def main():
@@ -63,6 +65,7 @@ def main():
     event_handler = CertUpdateEventHandler()
     observer = Observer()
     for cert in cert_list:
+        create_pfx_and_update_keyvault(cert)
         observer.schedule(event_handler, cert)
 
     def signal_handler(signum, frame):
