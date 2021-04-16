@@ -29,14 +29,16 @@ def create_pfx_and_update_keyvault(path):
             parent_name = re.sub('[^a-zA-Z0-9-]', '-', parent_name)
             cert_path = os.path.join(parent, 'fullchain.pem')
             key_path = os.path.join(parent, 'privkey.pem')
-            pfx_path = os.path.join(os.getcwd(), f'{parent_name}.pfx')
-            os.system(f'openssl pkcs12 -export -out {pfx_path} -inkey {key_path} -in {cert_path} -passout pass:')
+            pfx_name = f'{parent_name}.pfx'
+            pfx_name_base64 = f'{pfx_name}-base64'
+            os.system(f'openssl pkcs12 -export -out {pfx_name} -inkey {key_path} -in {cert_path} -passout pass:')
+            os.system(f'cat {pfx_name} | base64 -w 0 > {pfx_name_base64}')
             data = None
-            with open(pfx_path, 'r') as f:
+            with open(f'{pfx_name}-base64', 'r') as f:
                 data = f.read()
-                data = b64encode(data.encode('UTF-8', errors='strict'))
             update_keyvault(parent_name, data)
-            os.remove(pfx_path)
+            os.remove(pfx_name)
+            os.remove(pfx_name_base64)
         except Exception as e:
             print(e)
             continue
