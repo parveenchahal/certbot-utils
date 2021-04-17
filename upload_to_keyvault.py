@@ -6,8 +6,6 @@ from common import AADToken
 from common.key_vault import KeyVaultSecret
 from common import Scheduler
 
-
-
 class UploadCertIfChangedHandler(object):
     def __init__(self, keyvault_secret: KeyVaultSecret, cert_file_path: str) -> None:
         self._keyvault_secret = keyvault_secret
