@@ -6,7 +6,7 @@ then
   pfx_path=$3
 fi
 
-if [ -z $cert_name_list ]
+if [ -z $(echo $cert_name_list | cut -d " " -f1) ]
 then
   echo "Provide space separated cert name list"
   exit
