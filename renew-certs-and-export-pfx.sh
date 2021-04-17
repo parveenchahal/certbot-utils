@@ -26,9 +26,7 @@ renew()
   for c in $cert_name_list; do
     cert_path="/etc/letsencrypt/live/$c/fullchain.pem"
     key_path="/etc/letsencrypt/live/$c/privkey.pem"
-    openssl pkcs12 -export -out "$c-temp" -inkey $key_path -in $cert_path -passout pass:
-    cat "$c-temp" | base64 -w 0 > "$pfx_path/$c"
-    rm "$c-temp"
+    openssl pkcs12 -export -out "$c" -inkey $key_path -in $cert_path -passout pass:
     echo "Exported $c"
   done
 }

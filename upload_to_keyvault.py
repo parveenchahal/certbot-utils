@@ -1,10 +1,15 @@
-from datetime import timedelta
-import signal, os, re, optparse
+import uuid
+from OpenSSL.crypto import load_pkcs12
+from datetime import datetime, timedelta
+import signal, os, re, optparse, binascii
+from uuid import uuid5
 
 from common.exceptions import KeyvaultSecretNotFoundError
 from common import AADToken
 from common.key_vault import KeyVaultSecret
 from common import Scheduler
+from common.utils import decode_base64, encode_base64, string_to_bytes, bytes_to_string
+import logging
 
 class UploadCertIfChangedHandler(object):
     def __init__(self, keyvault_secret: KeyVaultSecret, cert_file_path: str) -> None:
@@ -13,22 +18,40 @@ class UploadCertIfChangedHandler(object):
 
     def handle(self):
         try:
+            if(not os.path.exists('tmp')):
+                os.mkdir('tmp')
             k = self._keyvault_secret
-            value = None
+            key_vault_cert_digest = None
+            key_vault_cert_data = None
             try:
-                value = k.get()
-            except KeyvaultSecretNotFoundError:
+                key_vault_cert_data = k.get()
+            except (KeyvaultSecretNotFoundError):
                 pass
-            file_data = None
-            with open(self._cert_file_path, 'r') as f:
-                file_data = f.read()
-            if value == file_data:
-                print(f'Skipping secret upload for {self._cert_file_path}. Same version already exists.')
+            try:
+                value = string_to_bytes(decode_base64(key_vault_cert_data, encoding='ISO-8859-1'), encoding='ISO-8859-1')
+                x = uuid5(uuid.NAMESPACE_DNS, str(datetime.utcnow().timestamp()))
+                key_vault_file_path = os.path.join('tmp', f'{x}')
+                with open(key_vault_file_path, 'wb') as f:
+                    f.write(value)
+                with open(key_vault_file_path, 'rb') as f:
+                    pfx = f.read()
+                    p12 = load_pkcs12(pfx)
+                    key_vault_cert_digest = p12.get_certificate().digest('sha1')
+            except binascii.Error as e:
+                logging.exception(f'Base64 decoding failed for {self._cert_file_path}', exc_info=e)
+            local_file_data = None
+            local_file_digest = ""
+            with open(self._cert_file_path, 'rb') as f:
+                local_file_data = f.read()
+            p12 = load_pkcs12(local_file_data)
+            local_file_digest = p12.get_certificate().digest('sha1')
+            if key_vault_cert_digest == local_file_digest:
+                logging.info(f'Skipping secret upload for {self._cert_file_path}. Same version already exists.')
                 return
-            k.set(file_data)
-            print(f'Updated secret for {self._cert_file_path}.')
+            k.set(bytes_to_string(encode_base64(local_file_data, encoding='ISO-8859-1')))
+            logging.info(f'Updated secret for {self._cert_file_path}.')
         except Exception as e:
-            print(f'Keyvault operation failed for {self._cert_file_path}: {e}')
+            logging.exception(f'Keyvault operation failed for {self._cert_file_path}', exc_info=e)
 
 def main():
     parser = optparse.OptionParser()
@@ -74,6 +97,6 @@ def main():
 
     for s in schedulers_list:
         s.join()
-
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     main()
