@@ -19,9 +19,11 @@ def update_keyvault(name, data):
     access_token = json.loads(res.text)["access_token"]
     res = _http_put(f'https://{keyvault_name}.vault.azure.net/secrets/{name}?api-version=7.1', json={'value': data}, headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'})
     if not res.ok:
-        raise NotAbleToUpdateKeyVault()
+        raise NotAbleToUpdateKeyVault(res.text)
+    print(f'update_keyvault successful for {name}')
 
 def create_pfx_and_update_keyvault(path):
+    print(f'create_pfx_and_update_keyvault for {path}')
     for _ in range(3):
         try:
             parent = os.path.dirname(path)
