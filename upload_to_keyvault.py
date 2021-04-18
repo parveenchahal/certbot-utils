@@ -30,7 +30,7 @@ class UploadCertIfChangedHandler(object):
             try:
                 value = string_to_bytes(decode_base64(key_vault_cert_data, encoding='ISO-8859-1'), encoding='ISO-8859-1')
                 x = uuid5(uuid.NAMESPACE_DNS, str(datetime.utcnow().timestamp()))
-                key_vault_file_path = os.path.join('.tmp', x)
+                key_vault_file_path = os.path.join('.tmp', str(x))
                 with open(key_vault_file_path, 'wb') as f:
                     f.write(value)
                 with open(key_vault_file_path, 'rb') as f:
