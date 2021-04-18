@@ -27,19 +27,20 @@ class UploadCertIfChangedHandler(object):
                 key_vault_cert_data = k.get()
             except (KeyvaultSecretNotFoundError):
                 pass
-            try:
-                value = string_to_bytes(decode_base64(key_vault_cert_data, encoding='ISO-8859-1'), encoding='ISO-8859-1')
-                x = uuid5(uuid.NAMESPACE_DNS, str(datetime.utcnow().timestamp()))
-                key_vault_file_path = os.path.join('.tmp', str(x))
-                with open(key_vault_file_path, 'wb') as f:
-                    f.write(value)
-                with open(key_vault_file_path, 'rb') as f:
-                    pfx = f.read()
-                    p12 = load_pkcs12(pfx)
-                    key_vault_cert_digest = p12.get_certificate().digest('sha1')
-                os.remove(key_vault_file_path)
-            except binascii.Error as e:
-                logging.exception(f'Base64 decoding failed for {self._cert_file_path}', exc_info=e)
+            if key_vault_cert_data is not None:
+                try:
+                    value = string_to_bytes(decode_base64(key_vault_cert_data, encoding='ISO-8859-1'), encoding='ISO-8859-1')
+                    x = uuid5(uuid.NAMESPACE_DNS, str(datetime.utcnow().timestamp()))
+                    key_vault_file_path = os.path.join('.tmp', str(x))
+                    with open(key_vault_file_path, 'wb') as f:
+                        f.write(value)
+                    with open(key_vault_file_path, 'rb') as f:
+                        pfx = f.read()
+                        p12 = load_pkcs12(pfx)
+                        key_vault_cert_digest = p12.get_certificate().digest('sha1')
+                    os.remove(key_vault_file_path)
+                except binascii.Error as e:
+                    logging.exception(f'Base64 decoding failed for {self._cert_file_path}', exc_info=e)
             local_file_data = None
             local_file_digest = ""
             with open(self._cert_file_path, 'rb') as f:
