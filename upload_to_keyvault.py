@@ -26,7 +26,7 @@ class UploadCertIfChangedHandler(object):
             try:
                 key_vault_cert_data = k.get()
             except (KeyvaultSecretNotFoundError):
-                pass
+                logging.info(f'Secret not found in keyvault for {self._cert_file_path}')
             if key_vault_cert_data is not None:
                 try:
                     value = string_to_bytes(decode_base64(key_vault_cert_data, encoding='ISO-8859-1'), encoding='ISO-8859-1')
