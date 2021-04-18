@@ -18,8 +18,8 @@ class UploadCertIfChangedHandler(object):
 
     def handle(self):
         try:
-            if(not os.path.exists('tmp')):
-                os.mkdir('tmp')
+            if(not os.path.exists('.tmp')):
+                os.mkdir('.tmp')
             k = self._keyvault_secret
             key_vault_cert_digest = None
             key_vault_cert_data = None
@@ -30,13 +30,14 @@ class UploadCertIfChangedHandler(object):
             try:
                 value = string_to_bytes(decode_base64(key_vault_cert_data, encoding='ISO-8859-1'), encoding='ISO-8859-1')
                 x = uuid5(uuid.NAMESPACE_DNS, str(datetime.utcnow().timestamp()))
-                key_vault_file_path = os.path.join('tmp', f'{x}')
+                key_vault_file_path = os.path.join('.tmp', x)
                 with open(key_vault_file_path, 'wb') as f:
                     f.write(value)
                 with open(key_vault_file_path, 'rb') as f:
                     pfx = f.read()
                     p12 = load_pkcs12(pfx)
                     key_vault_cert_digest = p12.get_certificate().digest('sha1')
+                os.remove(key_vault_file_path)
             except binascii.Error as e:
                 logging.exception(f'Base64 decoding failed for {self._cert_file_path}', exc_info=e)
             local_file_data = None
