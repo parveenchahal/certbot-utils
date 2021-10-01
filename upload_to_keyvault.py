@@ -77,6 +77,7 @@ def main():
     handlers_list = []
 
     for i in range(len(cert_file_names)):
+        logging.info(f'Scheduling for {cert_file_names[i]}')
         name = re.sub('[^a-zA-Z0-9-]', '-', cert_file_names[i])
         path = cert_files_path[i]
         k = KeyVaultSecret(keyvault_name, name, aad_token, '7.1')
