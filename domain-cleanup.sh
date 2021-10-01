@@ -20,6 +20,9 @@ else
   NAME="_acme-challenge.$NAME"
 fi
 
-echo $DOMAIN
-echo $NAME
+echo "CERTBOT_DOMAIN: $CERTBOT_DOMAIN"
+echo "DOMAIN: $DOMAIN"
+echo "RECORD NAME: $NAME"
+echo "CERTBOT_VALIDATION: $CERTBOT_VALIDATION"
+
 az network dns record-set txt delete -y -g $RESOURCE_GROUP -z $DOMAIN -n $NAME
